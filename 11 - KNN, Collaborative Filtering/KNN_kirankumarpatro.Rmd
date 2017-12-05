@@ -1,0 +1,225 @@
+---
+title: "KNN"
+author: "Kiran Kumar Patro"
+date: "July 29, 2017"
+output: html_document
+---
+
+
+
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+
+```{r}
+library(class)
+library(dummies)
+library(vegan)
+```
+
+
+```{r}
+bankdata = read.csv(file="UniversalBank.csv", header=TRUE, sep=",")
+```
+
+```{r}
+summary(bankdata)
+```
+
+
+```{r}
+sum(is.na(bankdata))
+```
+
+
+```{r}
+bankdata2 = subset(bankdata, select=-c(ID,ZIP.Code)) 
+bankdata2$Education = as.factor(as.character(bankdata2$Education))
+```
+
+
+```{r}
+library(dummies)
+Education = dummy(bankdata2$Education)
+bankdata3 = subset(bankdata2,select=-c(Education)) 
+bankdata4 = cbind(bankdata3,Education)
+```
+
+```{r}
+set.seed(123)
+train = sample(1:nrow(bankdata4),nrow(bankdata4)*0.6) 
+bankdata_train = bankdata4[train,] 
+bankdata_test = bankdata4[-train,]
+```
+
+```{r}
+table(bankdata4$Personal.Loan)
+```
+
+```{r}
+table(bankdata_train$Personal.Loan)
+```
+
+
+```{r}
+table(bankdata_test$Personal.Loan)
+
+```
+
+```{r}
+bankdata_trainwithoutclass = subset(bankdata_train,select=-c(Personal.Loan))
+bankdata_testwithoutclass = subset(bankdata_test,select=-c(Personal.Loan))
+```
+
+```{r}
+pred<-knn(bankdata_trainwithoutclass,bankdata_testwithoutclass,bankdata_train$Personal.Loan,k=3)
+```
+
+
+
+```{r}
+a=table(bankdata_test$Personal.Loan,pred)
+a
+accu=sum(diag(a))/nrow(bankdata_test)
+accu
+```
+
+```{r}
+bankdata5=decostand(bankdata4,"range")
+
+set.seed(123)
+train = sample(1:nrow(bankdata5),nrow(bankdata5)*0.6)
+
+bankdata_train = bankdata5[train,] 
+bankdata_test = bankdata5[-train,] 
+```
+
+
+```{r}
+bankdata_trainwithoutclass = subset(bankdata_train,select=-c(Personal.Loan))
+bankdata_testwithoutclass = subset(bankdata_test,select=-c(Personal.Loan))
+```
+
+```{r}
+pred = class::knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k = 7,l=5)
+pred = knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k = 7, prob = TRUE)
+a<-table(pred,bankdata_test$Personal.Loan)
+
+accu=sum(diag(a))/nrow(bankdata_test)
+accu
+
+```
+
+```{r}
+keep = condense(bankdata_trainwithoutclass, bankdata_train$Personal.Loan)
+```
+
+
+```{r}
+pred<-knn(bankdata_trainwithoutclass[keep,],bankdata_testwithoutclass,bankdata_train$Personal.Loan[keep])
+a<-table(pred,bankdata_test$Personal.Loan)
+
+accu=sum(diag(a))/nrow(bankdata_test)
+accu
+```
+
+
+```{r}
+library(FNN)
+```
+
+
+
+```{r}
+pred=FNN::knn(bankdata_trainwithoutclass[keep,], bankdata_testwithoutclass, 
+         bankdata_train$Personal.Loan[keep],k=5, algorithm = 'kd_tree')
+a <- table(pred,bankdata_test$Personal.Loan)
+a
+accu=sum(diag(a))/nrow(bankdata_test)
+accu
+```
+
+
+
+```{r}
+indices = knnx.index(bankdata_trainwithoutclass[keep, , drop=FALSE], bankdata_testwithoutclass, k=5)
+```
+
+```{r}
+print(indices[20, ])
+```
+
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+
+
+
+
+```{r}
+library(FNN)
+library(Metrics)
+```
+
+```{r}
+set.seed(12345)
+data <- data.frame(matrix(data = runif(2500, 24,65), nrow = 100, ncol = 25))
+names(data)
+```
+
+
+```{r}
+names(data)[25] <- "Target"
+```
+
+```{r}
+testData <- data[sample(81:100),1:24]
+trainData <- data[1:80,1:24]
+train.tgt <- data[1:80,25]
+test.tgt <- data[sample(81:100),25]
+```
+
+
+
+
+
+```{r}
+noOfNeigh <- 1
+pred<-knn.reg(train = trainData, test = testData, y = train.tgt, k = noOfNeigh)
+```
+
+
+```{r}
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+```
+
+```{r}
+pred<-knn.reg(train = trainData, test = testData, y = train.tgt, k = 5)
+```
+
+
+```{r}
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

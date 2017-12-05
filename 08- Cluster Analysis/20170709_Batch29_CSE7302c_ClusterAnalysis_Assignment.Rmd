@@ -1,0 +1,282 @@
+---
+title: "Cluster Analysis for Crime Data"
+author: "Clustering INSOFE Lab Assignment"
+date: "9 July 2017"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+
+```{r}
+
+rm(list = ls(all=TRUE))
+
+```
+
+# Agenda
+
+* Get the data
+
+* Data pre-processing
+
+* Explore the data
+
+* Hierarchical Clustering
+
+* Kmeans Clustering
+
+* Visualising Clusters and Evaluation
+
+
+# Problem Description
+
+* In the following Unsupervised Learning activity, you will perform cluster analysis on a dataset that has arrests per 100,000 residents for assault, murder, and rape in each of the 50 US states
+
+* The variable names in the dataset are self explanatory
+
+* So, you will cluster US states based on the crime rates, which can then be passed on to public policy experts to gain insight from it
+
+
+# Reading & Understanding the Data
+
+* Read in the dataset
+
+```{r}
+getwd()
+setwd("D:/insofe/7th week/20170709-batch29-cse7302c-clusteranalysis-kirankumar patroinsofe-master")
+Crimedata=read.csv("crime_data.csv")
+
+
+```
+
+* Use the str() and summary() functions to get a feel for the dataset.
+
+```{r}
+str(Crimedata)
+summary(Crimedata)
+
+
+
+```
+
+* Take a look at the data using the "head()" and "tail()" functions
+
+```{r}
+head(Crimedata)
+tail(Crimedata)
+
+
+
+```
+
+# Data pre-processing
+
+* Check for the number of missing values in the dataset
+
+```{r}
+sum(is.na(Crimedata))
+
+
+
+```
+
+
+* Convert the State names into row names and remove that variable from the dataset
+
+```{r}
+rownames(Crimedata)=Crimedata$State
+Crimedata <- Crimedata[, !(colnames(Crimedata) %in% "State")]
+
+
+```
+
+* Standardize and scale the data
+
+```{r}
+
+Crimedata <- scale(Crimedata, center = T, scale = T)
+
+```
+
+# Data exploration
+
+* Visualise the distances between the individual observations using the fviz_dist()
+
+```{r, fig.width=12, fig.height=8}
+
+library(factoextra)
+
+distance <- get_dist(Crimedata)
+
+fviz_dist(distance, gradient = list(low = "Red", mid = "Yellow", high = "Blue"))
+
+
+
+```
+
+# Hierarchical Clustering
+
+* Cluster the data using the Ward algorithm
+
+```{r}
+
+dist <- dist(Crimedata, method = "euclidean")
+
+hc_fit <- hclust(dist, method = "ward.D2")
+
+
+```
+
+* Plot the dendogram for hierarchical clustering
+
+```{r, fig.height=5, fig.width=10}
+
+plot(hc_fit)
+
+```
+
+* Cut the tree to 4 clusters
+
+```{r}
+points_hc <- cutree(hc_fit, k = 4)
+
+crime_clusts_hc <- cbind(points_hc, Crimedata)
+
+head(crime_clusts_hc)
+
+colnames(crime_clusts_hc)[1] <- "cluster_hc"
+
+```
+
+* Plot a new dendogram, with each of the clusters being surrounded by a border, using the rect.hclust() function
+
+```{r, fig.height=5, fig.width=10}
+plot(hc_fit)
+
+rect.hclust(hc_fit, k = 5, border = "red")
+
+
+```
+
+
+# K-Means Clustering
+
+* Build a basic kmeans model with k = 2
+
+```{r}
+km_basic <- kmeans(Crimedata, centers = 2)
+
+str(km_basic)
+
+
+```
+
+* Build a scree plot and choose a "k"
+
+```{r}
+
+
+wss <- 0
+
+
+for (i in 1:10) {
+  
+  cfit = kmeans(Crimedata, centers = i)
+  
+
+  wss[i] <- sum(cfit$withinss)
+  
+}
+
+set.seed(123)
+
+fviz_nbclust(Crimedata, kmeans, method = "wss")
+
+
+```
+
+* Choose a k and cluster the data
+
+```{r}
+km_clust <- kmeans(Crimedata, 5)
+
+km_points <- km_clust$cluster
+
+crime_clusts_km <- as.data.frame(cbind(km_clust$cluster, Crimedata))
+
+colnames(crime_clusts_km)[1] <- "cluster_km"
+
+head(crime_clusts_km)
+
+
+
+
+```
+
+* Visualise the clusters by plotting the data points on the first two principal components
+
+```{r, fig.height=5, fig.width=8}
+fviz_cluster(km_clust, Crimedata)
+
+
+```
+
+
+# Evaluation of Cluster Similarity
+
+
+* Evaluate the cluster stability using the adjustedRandIndex() function from the mclust package
+
+* Extract 75% of the data
+
+```{r}
+set.seed(1234)
+
+sample_rows <- sample(1:nrow(Crimedata), 0.80*nrow(Crimedata))
+
+extracted_obs <- Crimedata[sample_rows, ]
+
+
+```
+
+* Let's build a kmeans clustering with k = 6
+
+```{r}
+
+km_extr <- kmeans(extracted_obs, 4)
+
+```
+
+* Now using the adjustedRandIndex() function, we can get a measure of the cluster stability
+
+```{r}
+library(mclust)
+adjustedRandIndex(km_clust$cluster[sample_rows], km_extr$cluster)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

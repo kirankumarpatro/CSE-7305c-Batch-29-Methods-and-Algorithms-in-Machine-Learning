@@ -1,0 +1,449 @@
+---
+title: "Using Ensembles to predict Gamma Particles"
+author: "Insofe Lab Assignment for Ensemble Learning"
+date: "30 July 2017"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+## Agenda 
+
+* Read in the data
+
+* Data Pre-processing
+
+* Build Multiple Models
+
+* Stack those models
+
+* Report Metrics of Models on Test Data
+
+# Reading & Understanding the Data
+
+* Read in the .csv file
+
+```{r}
+
+# change your working directory using the "setwd()" function, if your dataset is located elsewhere
+rm(list=ls(all=TRUE))
+setwd("C:/Users/kiranpatro/Desktop/insofe/20170730-batch29-cse7305-ensembles-kirankumarpatroinsofe-master")
+gammadata=read.csv("gamma_data.csv")
+
+```
+
+* Get a feel for the data using the str() function 
+
+```{r}
+
+str(gammadata)
+
+```
+
+The dataset has 3804 observations with 11 variables, the descriptions of the variables are given below :
+
+1) **fLength** :  continuous  # major axis of ellipse [mm]
+
+2) **fWidth**  :   continuous  # minor axis of ellipse [mm] 
+
+3) **fSize**   :    continuous  # 10-log of sum of content of all pixels [in #phot]
+
+4) **fConc**   :    continuous  # ratio of sum of two highest pixels over fSize  [ratio]
+
+5) **fConc1**  :   continuous  # ratio of highest pixel over fSize  [ratio]
+
+6) **fAsym**   :    continuous  # distance from highest pixel to center, projected onto major axis [mm]
+
+7) **fM3Long** :  continuous  # 3rd root of third moment along major axis  [mm] 
+
+8) **fM3Trans**: continuous  # 3rd root of third moment along minor axis  [mm]
+
+9) **fAlpha**  :   continuous  # angle of major axis with vector to origin [deg]
+
+10) **fDist**  :    continuous  # distance from origin to center of ellipse [mm]
+
+11) **class**  :    1, 0         # 1 - gamma (signal), 0 - hadron (background)
+
+	
+
+* Let's look at the head and tail of the dataset
+
+```{r}
+head(gammadata)
+
+tail(gammadata)
+```
+
+
+# Data Pre-processing
+
+* Convert the class column into a factor
+
+```{r}
+
+gammadata$class=as.factor(gammadata$class)
+
+```
+
+* Split the dataset into train and test using using stratified sampling
+
+```{r}
+library(caret)
+set.seed(1234)
+train_row=createDataPartition(gammadata$class,p=0.7,list =F)
+train_data1=gammadata[train_row,]
+test_data1=gammadata[-train_row,]
+
+```
+
+* Split the train data further into train and validation datasets
+
+```{r}
+
+trainrow=createDataPartition(train_data1$class,p=0.7,list=F)
+traindata=train_data1[trainrow,]
+testdata=train_data1[-trainrow,]
+
+```
+
+* Standardize all the real valued variables in the dataset using only the train data
+
+```{r}
+
+stdmethod = preProcess(traindata,method =c("center","scale"))
+traindata1=predict(stdmethod,traindata)
+testdata1=predict(stdmethod,test_data1)
+valdata=predict(stdmethod,testdata)
+
+
+```
+
+
+
+# Building Multiple Models
+
+* Build multiple types of models
+
+## Linear SVM
+
+* Build a linear SVM Classifier
+
+```{r}
+library(e1071)
+svmmodel=svm(class~.,traindata1,kernel="linear")
+summary(svmmodel)
+pred.svm=predict(svmmodel,valdata)
+confusionMatrix(pred.svm,valdata$class)
+pred.traain.svm=predict(svmmodel)
+
+```
+
+
+## Tanhdot kernel SVM
+
+* Build a Tanhdot kernel SVM Classifier
+
+```{r}
+library(kernlab)
+svmmodel.th=ksvm(class~.,traindata1,kernel="tanhdot")
+summary(svmmodel.th)
+pred.svm.th=predict(svmmodel.th,valdata)
+confusionMatrix(pred.svm.th,valdata$class)
+pred.train.svm.th=predict(svmmodel.th)
+
+
+
+
+```
+
+
+## Anovadot kernel SVM
+
+* Build a Anovadot kernel SVM Classifier
+
+```{r}
+svmmodel.an=ksvm(class~.,traindata1,kernel="tanhdot")
+summary(svmmodel.th)
+pred.svm.an=predict(svmmodel.an,valdata)
+confusionMatrix(pred.svm.an,valdata$class)
+pred.train.svm.an=predict(svmmodel.an)
+
+
+
+
+
+
+```
+
+
+## Radial Basis Kernel SVM
+
+* Build a Radial Basis Kernel SVM Classifier
+
+```{r}
+
+
+svmmodel.rbk=lssvm(class~.,traindata1,kernel="rbfdot")
+summary(svmmodel.rbk)
+pred.svm.rbk=predict(svmmodel.rbk,valdata)
+confusionMatrix(pred.svm.rbk,valdata$class)
+pred.train.svm.rbk=predict(svmmodel.rbk)
+
+
+
+```
+
+
+## Random Forest
+
+* Build a Random Forest Model
+
+```{r, fig.height=7, fig.width=5.5}
+
+library(randomForest)
+model.rf=randomForest(class~.,traindata1)
+importance(model.rf)
+varImpPlot(model.rf)
+pred.rf=predict(model.rf,valdata)
+confusionMatrix(pred.rf,valdata$class)
+
+
+
+```
+
+
+## KNN
+
+* Initialize a KNN classifier
+
+```{r}
+model.knn=knn3(class~ .,traindata1,k=3)
+pred.knn=predict(model.knn,valdata)
+preds_knn <- ifelse(pred.knn[, 1] > pred.knn[, 2], 0, 1)
+confusionMatrix(preds_knn,valdata$class)
+pred.train.knn <- predict(model.knn, traindata1)
+
+preds.train_knn <- ifelse(pred.train.knn[, 1] > pred.train.knn[, 2], 0, 1)
+
+
+
+```
+
+## Decision Trees
+
+* Build a CART Tree
+
+```{r}
+
+library(rpart)
+
+model_dt <- rpart(class ~ . , traindata1)
+preds_dt <- predict(model_dt, valdata)
+
+preds_tree <- ifelse(preds_dt[, 1] > preds_dt[, 2], 0, 1)
+
+confusionMatrix(preds_tree, valdata$class)
+preds_train_dt <- predict(model_dt)
+
+preds_train_tree <- ifelse(preds_train_dt[, 1] > preds_train_dt[, 2], 0, 1)
+
+
+
+```
+
+
+## Bagged Decision Trees
+
+* Build CART Trees using bagging
+
+```{r}
+
+library(ipred)
+set.seed(1234)
+
+model_tree_bag <- bagging(class ~ . , data=traindata1, control = rpart.control(cp = 0.01, xval = 10))
+
+preds_tree_bag <- predict(model_tree_bag, valdata)
+
+confusionMatrix(preds_tree_bag, valdata$class)
+preds_train_tree_bag <- predict(model_tree_bag)
+
+
+
+
+```
+
+
+## GBM Model
+
+* Build a GBM Model
+
+
+```{r}
+traindata1$class <- as.numeric(as.character(traindata1$class))
+
+valdata$class <- as.numeric(as.character(valdata$class))
+library(gbm)
+model_gbm <- gbm(class ~ . , cv.folds = 8, interaction.depth = 3, 
+                 shrinkage = 0.005, distribution= 'bernoulli',
+                 data = traindata1, n.trees = 1600)
+gbm.perf(model_gbm)
+preds_g <- predict(model_gbm, type = 'response')
+library(pROC)
+gbm_roc <- roc(traindata1$class, preds_g)
+cutoff_gbm <- coords(gbm_roc, "best", ret = "threshold")
+
+preds_train_gbm <- ifelse(preds_g >= cutoff_gbm, 1, 0)
+
+preds_val_g <- predict(model_gbm, valdata, type = 'response')
+preds_gbm <- ifelse(preds_val_g >= cutoff_gbm, 1, 0)
+
+confusionMatrix(preds_gbm, valdata$class)
+
+
+
+```
+
+
+# Building a Stacked Ensemble
+
+* Build a stacked ensemble model using all the models from above, by integrating the predictions on the training and validation datasets
+
+```{r}
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+
+
+
+```
+
+
+# Reporting Metrics for the Models on Test Data
+
+* Report evaluation metrics for the above models on the test data
+
+```{r}
+
+
+
+
+
+```
+
+
+```{r}
+
+
+
+
+```
+
+```{r}
+
+
+
+```
+
+
+```{r}
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

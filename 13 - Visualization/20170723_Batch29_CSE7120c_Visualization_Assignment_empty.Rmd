@@ -1,0 +1,110 @@
+---
+title: "assignment"
+author: "Kiran Kumar Patro"
+date: "July 23, 2017"
+output: html_document
+---
+
+
+#1. Histograms for "Age", "CCAvg", "Experience".
+```{r}
+library(ggplot2)
+
+Universal_Bank <- read.csv("UniversalBank.csv")
+colnames(Universal_Bank)
+str(Universal_Bank)
+sum(is.na(Universal_Bank))
+summary(Universal_Bank)
+
+
+```
+
+
+```{r}
+attach(Universal_Bank)
+
+default_par <- par()
+par(mfrow=c(1,3))
+
+par(bg="grey")
+hist(Age, col="brown", xlab="Average",
+     main="Frequency Histogram:Average",xlim = c(20,70), ylim = c(0,700))
+hist(CCAvg, col="red", xlab="CCAvg",
+     main="Frequency Histogram:CCAvg", xlim = c(0,10), ylim = c(0,700)) 
+hist(Experience, col="red", xlab="Experience",
+     main="Frequency Histogram:Experience", xlim = c(-5,50), ylim = c(0,700))
+
+```
+
+#2. Boxplots for "Income". Add the mean line to the plots.
+
+```{r}
+par(mfrow=c(1,1))
+boxplot(Income,main = "Box Plot: Income", ylab = "Income")
+```
+
+
+#3. Boxplots for "Income" w.r.t. "Education"
+
+```{r}
+par(mfrow=c(1,1))
+boxplot(Income ~ Education, 
+        main = "Income Vs. Education", xlab="Education", ylab="Income")
+```
+
+#4. Bar-plots for "Personal Loan". Add color, titles, labels etc.
+
+```{r}
+ggplot(universalbank_data,aes(x=Personal.Loan)) + geom_bar() + 
+  xlab("Personal loan") + ylab("ID")
+ggplot(universalbank_data,aes(x=Personal.Loan)) + geom_bar() +
+  xlab("Personal Loan") + ylab("# ID")  +
+  ggtitle("#Personal loan")+
+  geom_text(stat='count',aes(label=..count..),vjust=0)
+```
+
+#5. Bar-plots for "Education"; play with bar width, background, text, legend etc.
+
+```{r}
+ggplot(universalbank_data,aes(x=Education, fill=Education)) + geom_bar() +
+  xlab("Education") + ylab("# ID")  +
+  ggtitle("#Education")
+```
+
+
+#6. Scatter plots for Age vs. Income, Experience vs. Income
+
+```{r}
+ggplot(data=universalbank_data, aes(x=Age, y=Income))+ geom_point() + 
+  xlab("Age")+ylab("Income") + 
+  ggtitle("Age vs. Income")
+```
+
+```{r}
+ggplot(data=universalbank_data, aes(x=Experience, y=Income))+ geom_point() + 
+  xlab("Experience")+ylab("Income") + 
+  ggtitle("Experience vs. Income")
+```
+
+
+#7. Scatter plots for Age vs. Income. Also add whether or not the customer took the personal loan (hint: can use color, shape etc. as the 3rd dimension)
+
+```{r}
+ggplot(data=universalbank_data, aes(x=Age, y=Income, colour = grey.colors(1,start=0.3,end = 0.9, gamma = 2.2,alpha = NULL) + 
+  geom_point() + 
+  xlab("Age")+ylab("Income") + 
+  ggtitle("Age vs. Income")
+```
+
+#Plot Education Vs. Income. Add the following to the plot: whether or not the customer accepted the personal loan, CCAvg.
+
+```{r}
+ ggplot(data=universalbank_data, aes(x=Education, y=Income))+ geom_point() + 
+    xlab("Education")+ylab("Income") + 
+    ggtitle("Education vs. Income")
+```
+
+
+
+
+
